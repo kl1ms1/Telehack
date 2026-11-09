@@ -9,6 +9,18 @@ on:
         description: "Direct download URL of a DECRYPTED Telegram .ipa (optional). If set, a patched IPA is produced."
         required: false
         default: ""
+      bundle_id:
+        description: "Bundle ID of the patched app. A different ID lets it be installed next to the official Telegram. Leave empty to keep the original."
+        required: false
+        default: "ph.telegra.Telegraph.telehack"
+      app_name:
+        description: "Name shown on the Home Screen"
+        required: false
+        default: "TeleHack"
+      remove_extensions:
+        description: "Remove app extensions (share, widgets, notifications). Recommended for free Apple IDs (fewer App IDs) and side-by-side install."
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -70,12 +82,19 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}
         env:
           IPA_URL: ${{ inputs.ipa_url }}
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+          APP_NAME: ${{ inputs.app_name }}
+          REMOVE_EXT: ${{ inputs.remove_extensions }}
         run: |
           echo "::add-mask::$IPA_URL"
           pip3 install --break-system-packages --force-reinstall https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
           mkdir -p ipa
           curl -fL --retry 3 -o ipa/Telegram.ipa "$IPA_URL"
-          cyan -i ipa/Telegram.ipa -o ipa/Telegram-TeleHack.ipa -u -f out/TeleHack.dylib
+          args=(-i ipa/Telegram.ipa -o ipa/Telegram-TeleHack.ipa -u -f out/TeleHack.dylib)
+          [ -n "$BUNDLE_ID" ] && args+=(-b "$BUNDLE_ID")
+          [ -n "$APP_NAME" ] && args+=(-n "$APP_NAME")
+          [ "$REMOVE_EXT" = "true" ] && args+=(-e)
+          cyan "${args[@]}"
 
       - name: Upload patched IPA
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}

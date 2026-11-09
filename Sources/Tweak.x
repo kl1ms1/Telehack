@@ -11,6 +11,8 @@
 #import <objc/runtime.h>
 #import "THNetFilter.h"
 #import "THPanel.h"
+#import "THSettingsEntry.h"
+#import "THCompat.h"
 
 %group MTProto
 
@@ -40,11 +42,18 @@ static void THImageAdded(const struct mach_header *mh, intptr_t slide) {
 
 %ctor {
     @autoreleasepool {
+        // Let a side-loaded copy with a changed bundle id run next to the
+        // official Telegram (must run before Telegram reads its containers).
+        THCompatInstall();
+
         THTryInstallNetHook();
         // MtProtoKit may live in a framework that is mapped after us.
         if (!THNetHookInstalled) _dyld_register_func_for_add_image(THImageAdded);
 
         // UI only in the app itself, not in share/notification extensions.
-        if ([[NSBundle mainBundle].bundlePath hasSuffix:@".app"]) THPanelInstall();
+        if ([[NSBundle mainBundle].bundlePath hasSuffix:@".app"]) {
+            THPanelInstall();
+            THSettingsEntryInstall();
+        }
     }
 }

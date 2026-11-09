@@ -94,6 +94,18 @@ static char kGestureKey;
 
 @end
 
+void THPanelPresentFrom(UIViewController *presenter) {
+    if (!presenter) return;
+    UIViewController *top = presenter;
+    while (top.presentedViewController) top = top.presentedViewController;
+    if ([top isKindOfClass:[UINavigationController class]] &&
+        [((UINavigationController *)top).viewControllers.firstObject isKindOfClass:[THPanelViewController class]])
+        return;
+    UINavigationController *nav =
+        [[UINavigationController alloc] initWithRootViewController:[THPanelViewController new]];
+    [top presentViewController:nav animated:YES completion:nil];
+}
+
 void THPanelInstall(void) {
     dispatch_async(dispatch_get_main_queue(), ^{
         THPanelPresenter *p = [THPanelPresenter shared];

@@ -8,3 +8,6 @@ void THPanelInstall(void);
 
 @interface THLogViewController : UITableViewController
 @end
+
+/// Present the panel from a specific view controller (used by the Settings banner).
+void THPanelPresentFrom(UIViewController *presenter);

@@ -116,7 +116,7 @@ void THPanelInstall(void) {
 #pragma mark - Panel
 
 typedef NS_ENUM(NSInteger, THRow) {
-    THRowStatus, THRowGhostMaster, THRowFeature, THRowReadNow,
+    THRowStatus, THRowGhostMaster, THRowReadNow,
     THRowCustomRules, THRowLogSwitch, THRowLogOpen, THRowAbout,
 };
 

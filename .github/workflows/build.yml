@@ -16,7 +16,7 @@ jobs:
     env:
       THEOS: ${{ github.workspace }}/theos
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: telehack
 
@@ -24,7 +24,7 @@ jobs:
         run: |
           set -eux
           sudo apt-get update -qq
-          sudo apt-get install -y -qq build-essential fakeroot rsync curl perl git xz-utils zstd unzip libxml2
+          sudo apt-get install -y -qq build-essential fakeroot rsync curl perl git xz-utils zstd unzip
           git clone --recursive --depth 1 --shallow-submodules https://github.com/theos/theos.git "$THEOS"
           mkdir -p "$THEOS/toolchain"
           curl -fsSL https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz \
@@ -56,7 +56,7 @@ jobs:
           cp packages/*.deb ../out/
 
       - name: Upload tweak
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: TeleHack-tweak
           path: out/
@@ -74,7 +74,7 @@ jobs:
 
       - name: Upload patched IPA
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Telegram-TeleHack-ipa
           path: ipa/Telegram-TeleHack.ipa

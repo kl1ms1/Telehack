@@ -1,3 +1,4 @@
+#import "THVersion.h"
 #import "THPanel.h"
 #import "THFeatures.h"
 #import "THSettings.h"
@@ -310,7 +311,7 @@ typedef NS_ENUM(NSInteger, THRow) {
             break;
         case THRowAbout: {
             NSString *tg = [NSBundle mainBundle].infoDictionary[@"CFBundleShortVersionString"] ?: @"?";
-            cell.textLabel.text = @"TeleHack 0.1.0";
+            cell.textLabel.text = [@"TeleHack " stringByAppendingString:TELEHACK_VERSION];
             cell.detailTextLabel.text = [NSString stringWithFormat:@"Telegram %@ · открыть панель: зажать тремя пальцами", tg];
             break;
         }

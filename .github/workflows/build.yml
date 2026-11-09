@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     env:
       THEOS: ${{ github.workspace }}/theos
     steps:
@@ -20,25 +20,39 @@ jobs:
         with:
           path: telehack
 
-      - name: Install Theos
+      - name: Install Theos (Linux toolchain + iOS SDK)
         run: |
-          brew install ldid make
+          set -eux
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential fakeroot rsync curl perl git xz-utils zstd unzip libxml2
           git clone --recursive --depth 1 --shallow-submodules https://github.com/theos/theos.git "$THEOS"
+          mkdir -p "$THEOS/toolchain"
+          curl -fsSL https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz \
+            | tar -xJ -C "$THEOS/toolchain"
+          curl -fsSL https://github.com/theos/sdks/archive/master.tar.gz | tar -xz -C "$RUNNER_TEMP"
+          mv "$RUNNER_TEMP"/sdks-master/*.sdk "$THEOS/sdks/"
+          ls "$THEOS/sdks"
+          if ! command -v ldid >/dev/null; then
+            sudo curl -fsSL -o /usr/local/bin/ldid \
+              https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux_x86_64
+            sudo chmod +x /usr/local/bin/ldid
+          fi
+          ls "$THEOS/toolchain/linux/iphone/bin" || true
 
       - name: Build rootless .deb (Dopamine / palera1n)
         working-directory: telehack
         run: |
-          gmake clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          make clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
           mkdir -p ../out
           cp packages/*.deb ../out/
           cp .theos/obj/TeleHack.dylib ../out/TeleHack.dylib
-          otool -L ../out/TeleHack.dylib
+          file ../out/TeleHack.dylib || true
 
       - name: Build rootful .deb (checkra1n / unc0ver)
         working-directory: telehack
         run: |
           rm -rf packages
-          gmake clean package FINALPACKAGE=1
+          make clean package FINALPACKAGE=1
           cp packages/*.deb ../out/
 
       - name: Upload tweak

@@ -49,7 +49,7 @@ Sources/
 
 ## Сборка
 
-Собирается в GitHub Actions (`.github/workflows/build.yml`) на macOS-раннере при каждом пуше.
+Собирается в GitHub Actions (`.github/workflows/build.yml`) на Ubuntu-раннере (Linux-тулчейн Theos) при каждом пуше.
 В артефакте `TeleHack-tweak`: `TeleHack.dylib` и .deb (rootless и rootful).
 
 **Готовый IPA:** Actions → *Build TeleHack* → *Run workflow* → вставить прямую ссылку на

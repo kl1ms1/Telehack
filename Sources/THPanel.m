@@ -131,7 +131,7 @@ void THPanelInstall(void) {
 
 typedef NS_ENUM(NSInteger, THRow) {
     THRowStatus, THRowGhostMaster, THRowReadNow,
-    THRowCustomRules, THRowLogSwitch, THRowLogOpen, THRowNetTest, THRowAbout,
+    THRowCustomRules, THRowNetHook, THRowLogSwitch, THRowLogOpen, THRowNetTest, THRowAbout,
 };
 
 @interface THPanelSection : NSObject
@@ -220,7 +220,8 @@ typedef NS_ENUM(NSInteger, THRow) {
         @"Блокировка любых MTProto-методов по constructor ID (hex). ID можно найти в журнале запросов.");
     [custom.rows addObject:@(THRowCustomRules)];
 
-    THPanelSection *debug = add(@"Отладка", nil);
+    THPanelSection *debug = add(@"Отладка", @"Сетевые плагины (режим призрака) меняют исходящие запросы. Если возникают проблемы со входом — держите их выключенными.");
+    [debug.rows addObject:@(THRowNetHook)];
     [debug.rows addObject:@(THRowLogSwitch)];
     [debug.rows addObject:@(THRowLogOpen)];
     [debug.rows addObject:@(THRowNetTest)];
@@ -268,15 +269,26 @@ typedef NS_ENUM(NSInteger, THRow) {
     }
 
     switch ((THRow)[row integerValue]) {
-        case THRowStatus:
-            cell.textLabel.text = THNetHookInstalled ? @"Хуки MTProto активны" : @"MTProto не найден";
-            cell.detailTextLabel.text = THNetHookInstalled
-                ? @"Плагины работают"
-                : @"Класс MTRequestMessageService не найден — сетевые плагины не работают в этой версии Telegram";
-            cell.imageView.image = [UIImage systemImageNamed:THNetHookInstalled ? @"checkmark.shield.fill"
-                                                                                : @"exclamationmark.triangle.fill"];
-            cell.imageView.tintColor = THNetHookInstalled ? [UIColor systemGreenColor] : [UIColor systemOrangeColor];
+        case THRowStatus: {
+            BOOL allowed = [st boolForKey:@"netHook"];
+            if (THNetHookInstalled) {
+                cell.textLabel.text = @"Хуки MTProto активны";
+                cell.detailTextLabel.text = @"Сетевые плагины работают";
+                cell.imageView.image = [UIImage systemImageNamed:@"checkmark.shield.fill"];
+                cell.imageView.tintColor = [UIColor systemGreenColor];
+            } else if (!allowed) {
+                cell.textLabel.text = @"Сетевые плагины выключены";
+                cell.detailTextLabel.text = @"Режим призрака не активен. Включите ниже и перезапустите приложение.";
+                cell.imageView.image = [UIImage systemImageNamed:@"moon.zzz.fill"];
+                cell.imageView.tintColor = [UIColor systemGrayColor];
+            } else {
+                cell.textLabel.text = @"MTProto не найден";
+                cell.detailTextLabel.text = @"Класс MTRequestMessageService не найден в этой версии Telegram";
+                cell.imageView.image = [UIImage systemImageNamed:@"exclamationmark.triangle.fill"];
+                cell.imageView.tintColor = [UIColor systemOrangeColor];
+            }
             break;
+        }
         case THRowGhostMaster:
             cell.textLabel.text = @"Включить всё";
             cell.textLabel.font = [UIFont boldSystemFontOfSize:17];
@@ -301,6 +313,11 @@ typedef NS_ENUM(NSInteger, THRow) {
             cell.detailTextLabel.text = c.count ? [self hexList:c] : @"Нет";
             break;
         }
+        case THRowNetHook:
+            cell.textLabel.text = @"Сетевые плагины";
+            cell.detailTextLabel.text = @"Включает режим призрака (нужен перезапуск). Если не входит — выключите.";
+            cell.accessoryView = [self switchOn:[st boolForKey:@"netHook"] tag:0 action:@selector(netHookToggled:)];
+            break;
         case THRowLogSwitch:
             cell.textLabel.text = @"Журнал запросов";
             cell.detailTextLabel.text = @"Записывать последние 300 исходящих запросов";
@@ -359,6 +376,16 @@ typedef NS_ENUM(NSInteger, THRow) {
 
 - (void)logToggled:(UISwitch *)sw {
     [THSettings shared].loggingEnabled = sw.on;
+}
+
+- (void)netHookToggled:(UISwitch *)sw {
+    [[THSettings shared] setBool:sw.on forKey:@"netHook"];
+    [self.tableView reloadData];
+    UIAlertController *a = [UIAlertController alertControllerWithTitle:@"Нужен перезапуск"
+        message:@"Полностью закройте и откройте приложение, чтобы изменение вступило в силу."
+        preferredStyle:UIAlertControllerStyleAlert];
+    [a addAction:[UIAlertAction actionWithTitle:@"Понятно" style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:a animated:YES completion:nil];
 }
 
 - (NSString *)hexList:(NSArray<NSNumber *> *)list {

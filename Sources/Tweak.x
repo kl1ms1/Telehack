@@ -28,9 +28,16 @@
 
 %end
 
+// Master switch: the MTProto request hook is only installed when the user has
+// explicitly enabled it. Default OFF while we confirm it is not what breaks
+// login on a resigned copy. Ghost-mode plugins need this ON (and a relaunch).
+static BOOL THNetHookAllowed(void) {
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"telehack.netHook"];
+}
+
 static void THTryInstallNetHook(void) {
     static dispatch_once_t once;
-    if (THNetHookInstalled || !objc_getClass("MTRequestMessageService")) return;
+    if (THNetHookInstalled || !THNetHookAllowed() || !objc_getClass("MTRequestMessageService")) return;
     dispatch_once(&once, ^{
         %init(MTProto);
         THNetHookInstalled = YES;

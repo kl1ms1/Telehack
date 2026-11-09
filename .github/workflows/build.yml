@@ -47,6 +47,11 @@ jobs:
           cp packages/*.deb ../out/
           cp .theos/obj/TeleHack.dylib ../out/TeleHack.dylib
           file ../out/TeleHack.dylib || true
+          echo "Linked libraries:"
+          strings -a ../out/TeleHack.dylib | grep -E '^(/System|/usr/lib|/Library|@rpath)' | sort -u
+          if strings -a ../out/TeleHack.dylib | grep -q CydiaSubstrate; then
+            echo "::warning::TeleHack.dylib links CydiaSubstrate; IPA injection will need it bundled"
+          fi
 
       - name: Build rootful .deb (checkra1n / unc0ver)
         working-directory: telehack

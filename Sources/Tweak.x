@@ -13,6 +13,7 @@
 #import "THPanel.h"
 #import "THSettingsEntry.h"
 #import "THCompat.h"
+#import "THCloudKitFix.h"
 
 %group MTProto
 
@@ -38,6 +39,7 @@ static void THTryInstallNetHook(void) {
 
 static void THImageAdded(const struct mach_header *mh, intptr_t slide) {
     THTryInstallNetHook();
+    THCloudKitFixInstall();  // in case CloudKit is mapped after us
 }
 
 %ctor {
@@ -45,6 +47,9 @@ static void THImageAdded(const struct mach_header *mh, intptr_t slide) {
         // Let a side-loaded copy with a changed bundle id run next to the
         // official Telegram (must run before Telegram reads its containers).
         THCompatInstall();
+
+        // Stop a resigned copy from aborting on CloudKit's entitlement check.
+        THCloudKitFixInstall();
 
         THTryInstallNetHook();
         // MtProtoKit may live in a framework that is mapped after us.

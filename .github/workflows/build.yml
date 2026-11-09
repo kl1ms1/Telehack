@@ -61,7 +61,7 @@ jobs:
           cp packages/*.deb ../out/
 
       - name: Upload tweak
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: TeleHack-tweak
           path: out/
@@ -79,7 +79,7 @@ jobs:
 
       - name: Upload patched IPA
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Telegram-TeleHack-ipa
           path: ipa/Telegram-TeleHack.ipa

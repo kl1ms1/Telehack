@@ -1,5 +1,6 @@
 TARGET := iphone:clang:latest:15.0
-ARCHS = arm64 arm64e
+# App Store apps (Telegram included) run as arm64 processes, so arm64e is not needed.
+ARCHS = arm64
 INSTALL_TARGET_PROCESSES = Telegram
 
 include $(THEOS)/makefiles/common.mk

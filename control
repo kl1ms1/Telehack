@@ -1,6 +1,6 @@
 Package: com.telehack.tweak
 Name: TeleHack
-Version: 0.0.3
+Version: 0.0.4
 Architecture: iphoneos-arm
 Description: Plugins for Telegram iOS: ghost mode, anonymous stories, ad blocking and more.
 Maintainer: TeleHack

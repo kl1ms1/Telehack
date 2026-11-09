@@ -4,6 +4,7 @@
 #import "THSettings.h"
 #import "THNetFilter.h"
 #import "THLog.h"
+#import "THDiag.h"
 #import <objc/runtime.h>
 
 static const NSTimeInterval kReadUnlockSeconds = 30;
@@ -130,7 +131,7 @@ void THPanelInstall(void) {
 
 typedef NS_ENUM(NSInteger, THRow) {
     THRowStatus, THRowGhostMaster, THRowReadNow,
-    THRowCustomRules, THRowLogSwitch, THRowLogOpen, THRowAbout,
+    THRowCustomRules, THRowLogSwitch, THRowLogOpen, THRowNetTest, THRowAbout,
 };
 
 @interface THPanelSection : NSObject
@@ -222,6 +223,7 @@ typedef NS_ENUM(NSInteger, THRow) {
     THPanelSection *debug = add(@"Отладка", nil);
     [debug.rows addObject:@(THRowLogSwitch)];
     [debug.rows addObject:@(THRowLogOpen)];
+    [debug.rows addObject:@(THRowNetTest)];
 
     [add(nil, nil).rows addObject:@(THRowAbout)];
     _sections = s;
@@ -309,6 +311,12 @@ typedef NS_ENUM(NSInteger, THRow) {
             cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
             cell.textLabel.text = @"Открыть журнал";
             break;
+        case THRowNetTest:
+            cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+            cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+            cell.textLabel.text = @"Проверить соединение";
+            cell.detailTextLabel.text = @"Тест сети: интернет и сервер Telegram";
+            break;
         case THRowAbout: {
             NSString *tg = [NSBundle mainBundle].infoDictionary[@"CFBundleShortVersionString"] ?: @"?";
             cell.textLabel.text = [@"TeleHack " stringByAppendingString:TELEHACK_VERSION];
@@ -330,6 +338,7 @@ typedef NS_ENUM(NSInteger, THRow) {
             break;
         case THRowCustomRules: [self editCustomRules]; break;
         case THRowLogOpen: [self.navigationController pushViewController:[THLogViewController new] animated:YES]; break;
+        case THRowNetTest: [self runNetTest]; break;
         default: break;
     }
 }
@@ -388,6 +397,23 @@ typedef NS_ENUM(NSInteger, THRow) {
 }
 
 @end
+
+- (void)runNetTest {
+    UIAlertController *wait = [UIAlertController alertControllerWithTitle:@"Проверка соединения"
+        message:@"Подождите…" preferredStyle:UIAlertControllerStyleAlert];
+    [self presentViewController:wait animated:YES completion:nil];
+    THDiagRun(^(NSString *report) {
+        [wait dismissViewControllerAnimated:YES completion:^{
+            UIAlertController *res = [UIAlertController alertControllerWithTitle:@"Результат"
+                message:report preferredStyle:UIAlertControllerStyleAlert];
+            [res addAction:[UIAlertAction actionWithTitle:@"Скопировать" style:UIAlertActionStyleDefault
+                handler:^(UIAlertAction *_) { [UIPasteboard generalPasteboard].string = report; }]];
+            [res addAction:[UIAlertAction actionWithTitle:@"Закрыть" style:UIAlertActionStyleCancel handler:nil]];
+            [self presentViewController:res animated:YES completion:nil];
+        }];
+    });
+}
+
 
 #pragma mark - Log
 

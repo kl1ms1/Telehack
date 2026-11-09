@@ -1,0 +1,67 @@
+name: Build TeleHack
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ipa_url:
+        description: "Direct download URL of a DECRYPTED Telegram .ipa (optional). If set, a patched IPA is produced."
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      THEOS: ${{ github.workspace }}/theos
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: telehack
+
+      - name: Install Theos
+        run: |
+          brew install ldid make
+          git clone --recursive --depth 1 --shallow-submodules https://github.com/theos/theos.git "$THEOS"
+
+      - name: Build rootless .deb (Dopamine / palera1n)
+        working-directory: telehack
+        run: |
+          gmake clean package FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=rootless
+          mkdir -p ../out
+          cp packages/*.deb ../out/
+          cp .theos/obj/TeleHack.dylib ../out/TeleHack.dylib
+          otool -L ../out/TeleHack.dylib
+
+      - name: Build rootful .deb (checkra1n / unc0ver)
+        working-directory: telehack
+        run: |
+          rm -rf packages
+          gmake clean package FINALPACKAGE=1
+          cp packages/*.deb ../out/
+
+      - name: Upload tweak
+        uses: actions/upload-artifact@v4
+        with:
+          name: TeleHack-tweak
+          path: out/
+
+      - name: Inject into IPA
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}
+        env:
+          IPA_URL: ${{ inputs.ipa_url }}
+        run: |
+          echo "::add-mask::$IPA_URL"
+          pip3 install --break-system-packages --force-reinstall https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
+          mkdir -p ipa
+          curl -fL --retry 3 -o ipa/Telegram.ipa "$IPA_URL"
+          cyan -i ipa/Telegram.ipa -o ipa/Telegram-TeleHack.ipa -u -f out/TeleHack.dylib
+
+      - name: Upload patched IPA
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: Telegram-TeleHack-ipa
+          path: ipa/Telegram-TeleHack.ipa
+          retention-days: 3

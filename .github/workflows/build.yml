@@ -78,6 +78,24 @@ jobs:
           name: TeleHack-tweak
           path: out/
 
+      - name: Publish dylib to prebuilt branch (for pickup over git)
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp out/TeleHack.dylib "$RUNNER_TEMP/TeleHack.dylib"
+          cd "$RUNNER_TEMP"
+          rm -rf pub
+          git clone --depth 1 "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" pub
+          cd pub
+          git checkout --orphan prebuilt
+          git reset --hard
+          cp "$RUNNER_TEMP/TeleHack.dylib" .
+          sha256sum TeleHack.dylib > TeleHack.dylib.sha256
+          git add TeleHack.dylib TeleHack.dylib.sha256
+          git -c user.email=ci@local -c user.name="TeleHack CI" commit -m "prebuilt dylib ${GITHUB_SHA::7} [skip ci]"
+          git push -f origin prebuilt
+
       - name: Inject into IPA
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.ipa_url != '' }}
         env:

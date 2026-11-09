@@ -396,8 +396,6 @@ typedef NS_ENUM(NSInteger, THRow) {
     [self presentViewController:a animated:YES completion:nil];
 }
 
-@end
-
 - (void)runNetTest {
     UIAlertController *wait = [UIAlertController alertControllerWithTitle:@"Проверка соединения"
         message:@"Подождите…" preferredStyle:UIAlertControllerStyleAlert];
@@ -414,6 +412,7 @@ typedef NS_ENUM(NSInteger, THRow) {
     });
 }
 
+@end
 
 #pragma mark - Log
 

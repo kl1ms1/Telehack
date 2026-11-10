@@ -80,6 +80,24 @@ void THDiagRun(void (^completion)(NSString *report)) {
         dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)));
         [r appendFormat:@"%@\n", httpLine];
 
+        // 5) External IP + country — tells us if the copy is going through the VPN
+        dispatch_semaphore_t sem2 = dispatch_semaphore_create(0);
+        __block NSString *ipLine = @"Внешний IP: не удалось узнать";
+        NSURLSessionDataTask *t2 = [session dataTaskWithURL:[NSURL URLWithString:@"https://ipapi.co/json/"]
+            completionHandler:^(NSData *data, NSURLResponse *resp, NSError *err) {
+                if (data) {
+                    NSDictionary *j = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+                    if ([j isKindOfClass:[NSDictionary class]]) {
+                        ipLine = [NSString stringWithFormat:@"Внешний IP: %@ (%@, %@)",
+                                  j[@"ip"] ?: @"?", j[@"country_name"] ?: j[@"country"] ?: @"?", j[@"org"] ?: @""];
+                    }
+                }
+                dispatch_semaphore_signal(sem2);
+            }];
+        [t2 resume];
+        dispatch_semaphore_wait(sem2, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)));
+        [r appendFormat:@"%@\n", ipLine];
+
         [r appendString:@"\nerrno: 60=таймаут, 61=отказ, 65=нет маршрута, 50=сеть недоступна, 1=нет прав"];
 
         dispatch_async(dispatch_get_main_queue(), ^{ completion(r); });

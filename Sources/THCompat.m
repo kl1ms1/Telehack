@@ -31,11 +31,10 @@ void THCompatInstall(void) {
     [d setBool:NO forKey:@"telehack.launchPending"];
     [d setBool:NO forKey:@"telehack.skipCompatOnce"];
 
-    // Only needed when we are NOT the official Telegram bundle id. If we are the
-    // real app (jailbreak install), leave its real shared container untouched.
-    NSString *bundleID = [NSBundle mainBundle].bundleIdentifier ?: @"";
-    BOOL isOfficial = [bundleID isEqualToString:@"ph.telegra.Telegraph"];
-    if (isOfficial) return;
+    // Always install the hook. It returns the REAL container when one exists and
+    // only supplies a fallback when the container is nil, so it is harmless for a
+    // real jailbreak install (never nil) and works with the original bundle id,
+    // e.g. inside a GBox container.
 
     static dispatch_once_t once;
     dispatch_once(&once, ^{

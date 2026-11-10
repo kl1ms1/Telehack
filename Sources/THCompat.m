@@ -22,6 +22,14 @@ static NSURL *THFallbackContainer(NSString *groupIdentifier) {
 }
 
 void THCompatInstall(void) {
+    // One-shot diagnostic: skip the container override for exactly one launch,
+    // then auto-restore so a bad launch can never lock the user out.
+    NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
+    if ([d boolForKey:@"telehack.skipCompatOnce"]) {
+        [d setBool:NO forKey:@"telehack.skipCompatOnce"];
+        return;
+    }
+
     // Only needed when we are NOT the official Telegram bundle id. If we are the
     // real app (jailbreak install), leave its real shared container untouched.
     NSString *bundleID = [NSBundle mainBundle].bundleIdentifier ?: @"";

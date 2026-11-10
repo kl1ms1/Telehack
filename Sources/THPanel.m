@@ -131,7 +131,7 @@ void THPanelInstall(void) {
 
 typedef NS_ENUM(NSInteger, THRow) {
     THRowStatus, THRowGhostMaster, THRowReadNow,
-    THRowCustomRules, THRowNetHook, THRowLogSwitch, THRowLogOpen, THRowNetTest, THRowAbout,
+    THRowCustomRules, THRowNetHook, THRowCompatTest, THRowLogSwitch, THRowLogOpen, THRowNetTest, THRowAbout,
 };
 
 @interface THPanelSection : NSObject
@@ -222,6 +222,7 @@ typedef NS_ENUM(NSInteger, THRow) {
 
     THPanelSection *debug = add(@"Отладка", @"Сетевые плагины (режим призрака) меняют исходящие запросы. Если возникают проблемы со входом — держите их выключенными.");
     [debug.rows addObject:@(THRowNetHook)];
+    [debug.rows addObject:@(THRowCompatTest)];
     [debug.rows addObject:@(THRowLogSwitch)];
     [debug.rows addObject:@(THRowLogOpen)];
     [debug.rows addObject:@(THRowNetTest)];
@@ -318,6 +319,12 @@ typedef NS_ENUM(NSInteger, THRow) {
             cell.detailTextLabel.text = @"Включает режим призрака (нужен перезапуск). Если не входит — выключите.";
             cell.accessoryView = [self switchOn:[st boolForKey:@"netHook"] tag:0 action:@selector(netHookToggled:)];
             break;
+        case THRowCompatTest:
+            cell.selectionStyle = UITableViewCellSelectionStyleDefault;
+            cell.textLabel.text = @"Тест: запуск без подмены контейнера";
+            cell.textLabel.textColor = self.view.tintColor;
+            cell.detailTextLabel.text = @"Разово отключает THCompat при следующем запуске (само вернётся)";
+            break;
         case THRowLogSwitch:
             cell.textLabel.text = @"Журнал запросов";
             cell.detailTextLabel.text = @"Записывать последние 300 исходящих запросов";
@@ -356,6 +363,7 @@ typedef NS_ENUM(NSInteger, THRow) {
         case THRowCustomRules: [self editCustomRules]; break;
         case THRowLogOpen: [self.navigationController pushViewController:[THLogViewController new] animated:YES]; break;
         case THRowNetTest: [self runNetTest]; break;
+        case THRowCompatTest: [self runCompatTest]; break;
         default: break;
     }
 }
@@ -376,6 +384,15 @@ typedef NS_ENUM(NSInteger, THRow) {
 
 - (void)logToggled:(UISwitch *)sw {
     [THSettings shared].loggingEnabled = sw.on;
+}
+
+- (void)runCompatTest {
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:@"telehack.skipCompatOnce"];
+    UIAlertController *a = [UIAlertController alertControllerWithTitle:@"Готово"
+        message:@"Полностью закройте приложение и откройте снова. На этот один запуск подмена контейнера отключится. Попробуйте войти. Если вылетит — просто откройте ещё раз, всё вернётся."
+        preferredStyle:UIAlertControllerStyleAlert];
+    [a addAction:[UIAlertAction actionWithTitle:@"Понятно" style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:a animated:YES completion:nil];
 }
 
 - (void)netHookToggled:(UISwitch *)sw {

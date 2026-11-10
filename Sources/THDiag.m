@@ -48,11 +48,21 @@ void THDiagRun(void (^completion)(NSString *report)) {
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
         NSMutableString *r = [NSMutableString string];
 
-        // 1) App group container (is THCompat's fallback in use?)
-        NSURL *grp = [[NSFileManager defaultManager]
-            containerURLForSecurityApplicationGroupIdentifier:@"group.ph.telegra.Telegraph"];
-        BOOL fallback = grp && [grp.path containsString:@"TeleHackGroup"];
-        [r appendFormat:@"App Group: %@\n", grp ? (fallback ? @"запасной (THCompat)" : @"родной") : @"НЕТ (nil)"];
+        // 1) App group — Telegram derives it as group.<bundleId>. Check BOTH the
+        //    derived one (what Telegram actually asks for) and the original, and
+        //    report whether we got a REAL container or just THCompat's fallback.
+        NSString *bid = [NSBundle mainBundle].bundleIdentifier ?: @"?";
+        NSString *derived = [@"group." stringByAppendingString:bid];
+        NSFileManager *fm = [NSFileManager defaultManager];
+        NSURL *gD = [fm containerURLForSecurityApplicationGroupIdentifier:derived];
+        NSURL *gO = [fm containerURLForSecurityApplicationGroupIdentifier:@"group.ph.telegra.Telegraph"];
+        NSString *(^state)(NSURL *) = ^NSString *(NSURL *u){
+            if (!u) return @"НЕТ (nil)";
+            return [u.path containsString:@"TeleHackGroup"] ? @"запасной (THCompat)" : @"НАСТОЯЩИЙ ✅";
+        };
+        [r appendFormat:@"Bundle ID: %@\n", bid];
+        [r appendFormat:@"App Group %@: %@\n", derived, state(gD)];
+        [r appendFormat:@"App Group group.ph.telegra.Telegraph: %@\n", state(gO)];
 
         // 2) Raw TCP to a Telegram datacenter IP (MTProto path)
         int dc = THTcpProbe("149.154.167.51", 443, 6);

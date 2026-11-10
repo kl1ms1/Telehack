@@ -1,5 +1,6 @@
 #import "THCompat.h"
 #import <objc/runtime.h>
+#import <UIKit/UIKit.h>
 
 static NSString *THFallbackRoot(void) {
     static NSString *root;
@@ -22,12 +23,31 @@ static NSURL *THFallbackContainer(NSString *groupIdentifier) {
 }
 
 void THCompatInstall(void) {
-    // One-shot diagnostic: skip the container override for exactly one launch,
-    // then auto-restore so a bad launch can never lock the user out.
     NSUserDefaults *d = [NSUserDefaults standardUserDefaults];
-    if ([d boolForKey:@"telehack.skipCompatOnce"]) {
-        [d setBool:NO forKey:@"telehack.skipCompatOnce"];
-        return;
+
+    // Crash guard: set a "launch in progress" flag now and clear it once the app
+    // becomes active. If a previous launch set it and never cleared it, that
+    // launch crashed without the container — so we permanently require THCompat.
+    BOOL crashedLastLaunch = [d boolForKey:@"telehack.launchPending"];
+    [d setBool:YES forKey:@"telehack.launchPending"];
+    [d synchronize];
+    [[NSNotificationCenter defaultCenter]
+        addObserverForName:UIApplicationDidBecomeActiveNotification object:nil queue:nil
+        usingBlock:^(NSNotification *n) {
+            [[NSUserDefaults standardUserDefaults] setBool:NO forKey:@"telehack.launchPending"];
+        }];
+
+    BOOL compatRequired = [d boolForKey:@"telehack.compatRequired"];
+    if (crashedLastLaunch) {
+        compatRequired = YES;
+        [d setBool:YES forKey:@"telehack.compatRequired"];  // stick with it from now on
+    }
+
+    // 0.0.9 diagnostic: run WITHOUT the container override to test whether it is
+    // what blocks login. If a launch without it crashes, the guard above turns it
+    // back on permanently on the next launch.
+    if (!compatRequired) {
+        return;  // THCompat disabled this launch
     }
 
     // Only needed when we are NOT the official Telegram bundle id. If we are the

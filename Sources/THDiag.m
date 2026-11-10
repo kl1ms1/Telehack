@@ -1,5 +1,6 @@
 #import "THDiag.h"
 #import "THCompat.h"
+#import <Security/Security.h>
 #import <sys/socket.h>
 #import <netinet/in.h>
 #import <arpa/inet.h>
@@ -97,6 +98,30 @@ void THDiagRun(void (^completion)(NSString *report)) {
         [t2 resume];
         dispatch_semaphore_wait(sem2, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(10 * NSEC_PER_SEC)));
         [r appendFormat:@"%@\n", ipLine];
+
+        // 6) Keychain access — a resigned copy often loses its keychain group,
+        // which breaks MTProto's secure connection and looks like "no internet".
+        NSDictionary *item = @{ (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+                                (__bridge id)kSecAttrService: @"telehack.probe",
+                                (__bridge id)kSecAttrAccount: @"probe",
+                                (__bridge id)kSecValueData: [@"x" dataUsingEncoding:NSUTF8StringEncoding] };
+        SecItemDelete((__bridge CFDictionaryRef)item);
+        OSStatus kcAdd = SecItemAdd((__bridge CFDictionaryRef)item, NULL);
+        NSDictionary *q = @{ (__bridge id)kSecClass: (__bridge id)kSecClassGenericPassword,
+                             (__bridge id)kSecAttrService: @"telehack.probe",
+                             (__bridge id)kSecAttrAccount: @"probe",
+                             (__bridge id)kSecReturnData: (__bridge id)kCFBooleanTrue };
+        CFTypeRef out = NULL;
+        OSStatus kcGet = SecItemCopyMatching((__bridge CFDictionaryRef)q, &out);
+        if (out) CFRelease(out);
+        SecItemDelete((__bridge CFDictionaryRef)item);
+        NSString *(^kc)(OSStatus) = ^NSString *(OSStatus st){
+            if (st == errSecSuccess) return @"OK ✅";
+            if (st == errSecMissingEntitlement) return @"НЕТ ПРАВ (-34018) ❌ — вот причина!";
+            return [NSString stringWithFormat:@"код %d", (int)st];
+        };
+        [r appendFormat:@"Keychain запись: %@\n", kc(kcAdd)];
+        [r appendFormat:@"Keychain чтение: %@\n", kc(kcGet)];
 
         [r appendString:@"\nerrno: 60=таймаут, 61=отказ, 65=нет маршрута, 50=сеть недоступна, 1=нет прав"];
 

@@ -9,7 +9,7 @@ TWEAK_NAME = TeleHack
 
 TeleHack_FILES = Sources/Tweak.x $(wildcard Sources/*.m)
 TeleHack_CFLAGS = -fobjc-arc -ISources -Wno-deprecated-declarations
-TeleHack_FRAMEWORKS = UIKit Foundation
+TeleHack_FRAMEWORKS = UIKit Foundation Security
 # Plain ObjC runtime swizzling: dylib не зависит от CydiaSubstrate/ElleKit,
 # поэтому его можно просто вшить в IPA без джейлбрейка.
 TeleHack_LOGOS_DEFAULT_GENERATOR = internal
